@@ -7,3 +7,4 @@ charts/*.tgz
 charts/
 **/charts/
 *.idea/
+!charts/
