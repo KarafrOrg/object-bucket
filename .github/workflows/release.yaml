@@ -1,4 +1,4 @@
-name: Release charts
+name: Release Charts
 
 on:
   workflow_dispatch:
@@ -10,13 +10,12 @@ on:
       - 'values.yaml'
       - 'templates/**'
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pages: write
-      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,24 +32,10 @@ jobs:
         with:
           version: v3.14.0
 
-      - name: Package chart
-        run: |
-          helm package . -d .deploy
-
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.7.0
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-          CR_SKIP_EXISTING: "true"
         with:
-          charts_dir: '.'
-          skip_packaging: true
-          pages_branch: gh-pages
-
-      - name: Update chart index
-        run: |
-          git checkout gh-pages || git checkout --orphan gh-pages
-          helm repo index . --url https://karafr.github.io/object-bucket
-          git add index.yaml *.tgz
-          git commit -m "Update Helm repository index" || true
-          git push origin gh-pages
+          charts_dir: .
+          skip_existing: true
