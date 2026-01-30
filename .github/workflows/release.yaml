@@ -32,10 +32,34 @@ jobs:
         with:
           version: v3.14.0
 
-      - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.7.0
-        env:
-          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Get chart version
+        id: chart_version
+        run: |
+          VERSION=$(grep '^version:' Chart.yaml | awk '{print $2}')
+          NAME=$(grep '^name:' Chart.yaml | awk '{print $2}')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+
+      - name: Package chart
+        run: |
+          helm package . -d .deploy
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
         with:
-          charts_dir: .
-          skip_existing: true
+          tag_name: ${{ steps.chart_version.outputs.name }}-${{ steps.chart_version.outputs.version }}
+          files: .deploy/*.tgz
+          generate_release_notes: true
+
+      - name: Checkout gh-pages
+        run: |
+          git fetch origin gh-pages || git checkout --orphan gh-pages && git rm -rf . && git commit --allow-empty -m "Initial gh-pages"
+          git checkout gh-pages
+
+      - name: Update index
+        run: |
+          helm repo index . --url https://karafrorg.github.io/object-bucket --merge index.yaml || helm repo index . --url https://karafrorg.github.io/object-bucket
+          cp .deploy/*.tgz .
+          git add index.yaml *.tgz
+          git commit -m "Release ${{ steps.chart_version.outputs.name }}-${{ steps.chart_version.outputs.version }}" || true
+          git push origin gh-pages
