@@ -19,7 +19,7 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if $bucket.generateBucketName }}
+  {{- if not $bucket.bucketName }}
   generateBucketName: {{ $bucket.name }}
   {{- end }}
   {{- if $bucket.storageClassName }}
